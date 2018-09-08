@@ -2,6 +2,7 @@ import socket
 import serial
 import glob
 import RPi.GPIO as GPIO
+import time
 from socket import error as SocketError
 import errno
 
@@ -21,25 +22,24 @@ GPIO.setup(27, GPIO.OUT)
 def save_pos(CamPos1, CamPos2):
     CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
     f = open('/nserver/cam_pos.conf', 'w')
-    f.write(CamPos1 + "\n" + CamPos2)
+    f.write(str(CamPos1) + "\n" + str(CamPos2))
     f.close()
 
 
 def load_pos():
         f = open('/nserver/cam_pos.conf', 'r')
         pos = f.read()
+        f.close()
         list_of_pos = pos.split('\n')
-        CamPos1 = (int)list_of_pos[0]
-        CamPos2 = (int)list_of_pos[1]
+        CamPos1 = int(list_of_pos[0])
+        CamPos2 = int(list_of_pos[1])
+        CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
         return CamPos1, CamPos2
 
 
 def init_arduino():
-    try:
-        CamPos1, CamPos2 = load_pos()
-    except:
-        CamPos1 = 500
-        CamPos2 = 800
+    CamPos1 = 500
+    CamPos2 = 800
     try:
         dev = glob.glob('/dev/ttyACM*')[0]
     except:
@@ -47,12 +47,20 @@ def init_arduino():
     print(dev)
     try:
         SerialArduino = serial.Serial(dev, 9600, timeout=1)
-        camera_rotate(SerialArduino, CamPos1, CamPos2)
         ArduOnLine = True
         print("Arduino is online")
+        time.sleep(5)
     except:
         ArduOnLine = False
         print("Arduino is offline. Check power, port and connection")
+    try:
+        CamPos1, CamPos2 = load_pos()
+        print("Loaded pos: " + str(CamPos1) + " and " + str(CamPos2))
+    except:
+        print("Failed to load saved pos at boot. Try to do it manually")
+        CamPos1 = 500
+        CamPos2 = 800
+    camera_rotate(SerialArduino, CamPos1, CamPos2)
     return SerialArduino, ArduOnLine, CamPos1, CamPos2
 
 
@@ -199,7 +207,7 @@ def main(SerialArduino, ArduOnLine, CamPos1, CamPos2):
             if data.decode() == "load_pos":
                 print("Recieved comm for load")
                 try:
-                    load_pos(CamPos1, CamPos2)
+                    CamPos1, CamPos2 = load_pos()
                     camera_rotate(SerialArduino, CamPos1, CamPos2)
                     conn.send("Position has been loaded".encode())
                 except:
