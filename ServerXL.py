@@ -18,9 +18,28 @@ GPIO.setup(22, GPIO.OUT)
 GPIO.setup(27, GPIO.OUT)
 
 
-def initArduino():
-    CamPos1 = 500
-    CamPos2 = 800
+def save_pos(CamPos1, CamPos2):
+    CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+    f = open('/nserver/cam_pos.conf', 'w')
+    f.write(CamPos1 + "\n" + CamPos2)
+    f.close()
+
+
+def load_pos():
+        f = open('/nserver/cam_pos.conf', 'r')
+        pos = f.read()
+        list_of_pos = pos.split('\n')
+        CamPos1 = (int)list_of_pos[0]
+        CamPos2 = (int)list_of_pos[1]
+        return CamPos1, CamPos2
+
+
+def init_arduino():
+    try:
+        CamPos1, CamPos2 = load_pos()
+    except:
+        CamPos1 = 500
+        CamPos2 = 800
     try:
         dev = glob.glob('/dev/ttyACM*')[0]
     except:
@@ -28,7 +47,7 @@ def initArduino():
     print(dev)
     try:
         SerialArduino = serial.Serial(dev, 9600, timeout=1)
-        cameraRotate(SerialArduino, CamPos1, CamPos2)
+        camera_rotate(SerialArduino, CamPos1, CamPos2)
         ArduOnLine = True
         print("Arduino is online")
     except:
@@ -37,7 +56,7 @@ def initArduino():
     return SerialArduino, ArduOnLine, CamPos1, CamPos2
 
 
-def cameraPosConstrain(CamPos1, CamPos2):
+def camera_pos_constrain(CamPos1, CamPos2):
     if CamPos1 > 900:
         CamPos1 = 900
     if CamPos1 < 100:
@@ -49,11 +68,10 @@ def cameraPosConstrain(CamPos1, CamPos2):
     return CamPos1, CamPos2
 
 
-def cameraRotate(SerialArduino, CamPos1, CamPos2):
-    CamPos1, CamPos2 = cameraPosConstrain(CamPos1, CamPos2)
+def camera_rotate(SerialArduino, CamPos1, CamPos2):
     SerialArduino.write("Cam_Orient_(first,second) " + str(CamPos1) + " " + str(CamPos2) + "\n")
 
-def initSocket():
+def socket_init():
     ServerPort = 8082
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("Socket created. Setting the socket...")
@@ -67,12 +85,12 @@ def initSocket():
     return sock
 
 
-def mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2):
+def main(SerialArduino, ArduOnLine, CamPos1, CamPos2):
     if not ArduOnLine:
         print("Arduino not connected. Shutting down...")
         exit(1)
     try:
-        conn, addr = initSocket().accept()
+        conn, addr = socket_init().accept()
         while True:
             data = conn.recv(1024)
             #print(data.decode())
@@ -81,7 +99,6 @@ def mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2):
             if data.decode == "" or data.decode == 0 or data.decode() == None:
                 continue
             if data.decode() == CheckWord:
-                conn.send("True".encode())
                 print("I am OK")
                 continue
             if data.decode() == StopWord:
@@ -91,81 +108,80 @@ def mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2):
                 exit(1)
             if data.decode() == "up":
                 CamPos2 -= 10
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned up")
                 continue
             if data.decode() == "up2":
                 CamPos2 -= 50
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned up 2")
                 continue
             if data.decode() == "up3":
                 CamPos2 -= 100
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned up 3")
                 continue
             if data.decode() == "down":
                 CamPos2 += 10
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned down")
                 continue
             if data.decode() == "down2":
                 CamPos2 += 50
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned down 2")
                 continue
             if data.decode() == "down3":
                 CamPos2 += 100
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned down 3")
                 continue
             if data.decode() == "left":
                 CamPos1 += 10
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned left")
                 continue
             if data.decode() == "left2":
                 CamPos1 += 50
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned left 2")
                 continue
             if data.decode() == "left3":
                 CamPos1 += 100
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned left 3")
                 continue
             if data.decode() == "right":
                 CamPos1 -= 10
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned right")
                 continue
             if data.decode() == "right2":
                 CamPos1 -= 50
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned right 2")
                 continue
             if data.decode() == "right3":
                 CamPos1 -= 50
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                CamPos1, CamPos2 = camera_pos_constrain(CamPos1, CamPos2)
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Turned right 3")
                 continue
             if data.decode() == "center":
                 CamPos1 = 500
                 CamPos2 = 800
-                cameraRotate(SerialArduino, CamPos1, CamPos2)
-                conn.send("True".encode())
+                camera_rotate(SerialArduino, CamPos1, CamPos2)
                 print("Centered")
                 continue
             if data.decode() == "disconnect":
@@ -173,7 +189,21 @@ def mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2):
                 print("Restarting sockets...")
                 conn.close()
                 print("Connection closed. Initializing socket...")
-                conn, addr = initSocket().accept()
+                conn, addr = socket_init().accept()
+                continue
+            if data.decode() == "save_pos":
+                print("Recieved comm for save")
+                save_pos(CamPos1, CamPos2)
+                conn.send("Position has been saved".encode())
+                continue
+            if data.decode() == "load_pos":
+                print("Recieved comm for load")
+                try:
+                    load_pos(CamPos1, CamPos2)
+                    camera_rotate(SerialArduino, CamPos1, CamPos2)
+                    conn.send("Position has been loaded".encode())
+                except:
+                    conn.send("Load error".encode())
                 continue
     except SocketError as e:
         if e.errno != errno.ECONNRESET:
@@ -181,7 +211,7 @@ def mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2):
         pass  # Handle error here.
         print("Restarting sockets...")
         conn.close()
-        mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2)
+        main(SerialArduino, ArduOnLine, CamPos1, CamPos2)
 
-SerialArduino, ArduOnLine, CamPos1, CamPos2 = initArduino()
-mainFunc(SerialArduino, ArduOnLine, CamPos1, CamPos2)
+SerialArduino, ArduOnLine, CamPos1, CamPos2 = init_arduino()
+main(SerialArduino, ArduOnLine, CamPos1, CamPos2)
