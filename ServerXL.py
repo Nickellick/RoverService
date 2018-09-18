@@ -1,11 +1,7 @@
-import socket
-import serial
-import glob
 import RPi.GPIO as GPIO
 import time
 from socket import error as SocketError
 import errno
-
 
 CheckWord = "chc"
 StopWord = "Stop"
